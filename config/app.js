@@ -161,7 +161,7 @@ module.exports = {
     | file, database
     |
     */
-    loader: 'file',
+    loader: 'database',
 
     /*
     |--------------------------------------------------------------------------
@@ -173,7 +173,7 @@ module.exports = {
     | based on HTTP headers/query string.
     |
     */
-    locale: 'en'
+    locale: 'pt'
   },
 
   logger: {
