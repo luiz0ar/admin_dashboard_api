@@ -22,3 +22,4 @@ Route.post('/logout', 'UserController.logout')
 
 Route.get('/auth/me', 'UserController.auth').middleware(['auth'])
 Route.resource('users', 'UserController').apiOnly().middleware(['auth'])
+Route.resource('posts', 'PostController').apiOnly().middleware(['auth'])
