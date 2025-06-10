@@ -7,6 +7,9 @@ class CategoriesSchema extends Schema {
   up () {
     this.create('categories', (table) => {
       table.increments()
+      table.string('name').notNullable()
+      table.string('created_by').notNullable()
+      table.string('updated_by').nullable()
       table.timestamps()
     })
   }
