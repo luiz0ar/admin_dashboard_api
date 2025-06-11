@@ -8,10 +8,7 @@ class Category extends Model {
    * Garante que o nome da categoria seja sempre salvo em maiúsculas.
    */
   static get traits () {
-    return [
-      '@provider:Adonis/Acl/HasRole',
-      '@provider:Adonis/Acl/HasPermission'
-    ]
+    return
   }
   static boot () {
     super.boot()
