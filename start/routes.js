@@ -25,3 +25,16 @@ Route.resource('users', 'UserController').apiOnly().middleware(['auth'])
 Route.resource('posts', 'PostController').apiOnly().middleware(['auth'])
 Route.resource('categories', 'CategoryController').apiOnly().middleware(['auth'])
 Route.resource('unities', 'UnityController').apiOnly().middleware(['auth'])
+Route.resource('magazines', 'MaganizeController').apiOnly().middleware(['auth'])
+Route.resource('partners', 'PartnerController').apiOnly().middleware(['auth'])
+
+// -------------------------------------------------------------------------------------
+
+Route.get('/uploads/:folder/:file', async ({ params, response }) => {
+  const { folder, file } = params
+  const filePath = Helpers.publicPath(`uploads/${folder}/${file}`)
+  if (!fs.existsSync(filePath)) {
+    return response.status(404).send('Arquivo não encontrado')
+  }
+  return response.download(filePath)
+})
