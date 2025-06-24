@@ -5,6 +5,7 @@ const Hash = use('Hash')
 const Token = use('App/Models/Token')
 const moment = require('moment')
 const LogError = use('App/Models/LogError')
+const Database = use('Database')
 
 class UserController {
   async index({ response }) {
@@ -66,40 +67,37 @@ class UserController {
   }
 
   async login({ request, response, auth }) {
+    const trx = await Database.beginTransaction()
     try {
       const { email, password } = request.only(['email', 'password'])
-      const user = await User.findBy('email', email)
-
-      if (!user) {
-        return response.status(404).json({ message: 'User or password invalid.' })
+      if (!email || !password) {
+        return response.status(400).json({ message: 'Invalid credentials.' })
       }
-
-      if (user.blocked_at) {
-        return response.status(403).json({
-          message: 'User blocked. Please contact an administrator.',
-          blocked_at: user.blocked_at
-        })
-      }
-
-      const isPasswordValid = await Hash.verify(password, user.password)
-      if (!isPasswordValid) {
-        user.tries = (user.tries || 0) + 1
-        if (user.tries >= 5) {
-          user.blocked_at = moment().format('YYYY-MM-DD HH:mm:ss')
+      const user = await User.query().where('email', email).first()
+      const passwordHash = user ? user.password : '$2y$12$fakeHashForTimingAttackPrevention'
+      const isPasswordValid = await Hash.verify(password, passwordHash)
+      if (!user || !isPasswordValid) {
+        if (user) {
+          user.tries = (user.tries || 0) + 1
+          if (user.tries >= 5) {
+            user.blocked_at = moment().format('YYYY-MM-DD HH:mm:ss')
+          }
+          await user.save(trx)
         }
-        await user.save()
-
+        await trx.commit()
         return response.status(401).json({
-          message: 'User or password invalid.',
-          tries: user.tries,
-          blocked: !!user.blocked_at
+          message: 'Invalid credentials.',
         })
       }
-
+      if (user.blocked_at) {
+        await trx.commit()
+        return response.status(403).json({
+          message: 'Account blocked. Contact administrator.'
+        })
+      }
       user.tries = 0
       user.blocked_at = null
-      await user.save()
-
+      await user.save(trx)
       const tokenData = await auth.generate(user)
       await Token.create({
         user_id: user.id,
@@ -107,9 +105,9 @@ class UserController {
         type: 'jwt',
         is_revoked: false,
         ip: request.ip(),
-        user_agent: request.header('user-agent')
-      })
-
+        user_agent: request.header('user-agent') || 'unknown'
+      }, trx)
+      await trx.commit()
       return response.json({
         message: 'Login successful.',
         token: tokenData.token,
@@ -120,7 +118,19 @@ class UserController {
         }
       })
     } catch (error) {
-      return this.logAndRespond(error, response, 'login', 'Error during login.')
+      await trx.rollback()
+      await LogError.create({
+        controller: 'UserController',
+        function: 'login',
+        jsonError: JSON.stringify(error),
+        message: error.message,
+        user_agent: request.header('user-agent') || 'unknown',
+        ip: request.ip()
+      })
+
+      return response.status(500).json({
+        message: 'An unexpected error occurred. Please try again later.'
+      })
     }
   }
 

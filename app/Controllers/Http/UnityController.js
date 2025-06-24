@@ -39,7 +39,7 @@ class UnityController {
 
       const validation = await this.validateUnity(data)
       if (validation.fails()) {
-        return response.status(422).json(validation.messages())
+        return response.status(404).json(validation.messages())
       }
 
       const bannerPath = await this.processBanner(request)
@@ -68,7 +68,7 @@ class UnityController {
 
       const validation = await this.validateUnity(data)
       if (validation.fails()) {
-        return response.status(422).json(validation.messages())
+        return response.status(404).json(validation.messages())
       }
 
       const bannerPath = await this.processBanner(request)
