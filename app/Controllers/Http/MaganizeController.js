@@ -71,7 +71,7 @@ class MagazineController {
         cover: coverUrl,
       })
 
-      return response.status(201).json({
+      return response.status(200).json({
         id: magazine.id,
         title: magazine.title,
         edition: magazine.edition,

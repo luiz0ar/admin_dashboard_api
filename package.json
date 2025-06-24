@@ -27,6 +27,8 @@
     "@adonisjs/session": "^1.0.27",
     "@adonisjs/shield": "^1.0.8",
     "@adonisjs/validator": "^5.1.0",
+    "@rocketseat/adonis-acl": "^1.2.2",
+    "adonis-acl": "^1.1.1",
     "mysql": "^2.18.1",
     "sharp": "^0.34.2"
   },

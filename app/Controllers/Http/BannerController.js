@@ -7,9 +7,9 @@ class BannerController {
   }
 
   async store ({ request, response }) {
-    const data = request.only(['cover_image', 'title', 'description', 'start', 'end'])
+    const data = request.only(['cover_image', 'link'])
     const banner = await Banner.create(data)
-    return response.status(201).json(banner)
+    return response.status(200).json(banner)
   }
 
   async show ({ params, response }) {
@@ -25,7 +25,7 @@ class BannerController {
     if (!banner) {
       return response.status(404).json({ message: 'Banner not found.' })
     }
-    const data = request.only(['cover_image', 'title', 'description', 'start', 'end'])
+    const data = request.only(['cover_image', 'link'])
     banner.merge(data)
     await banner.save()
     return response.json(banner)

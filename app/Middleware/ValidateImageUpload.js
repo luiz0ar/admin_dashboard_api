@@ -12,12 +12,12 @@ class ValidateImageUpload {
 
       if (!allowedTypes.includes(file.type)) {
         return response.status(400).json({
-          message: 'Formato de imagem inválido. Apenas JPG e PNG são permitidos.'
+          message: 'Invalid format. Only jpeg, jpg and png are allowed.'
         })
       }
-      if (file.size > 20 * 1024 * 1024) {
+      if (file.size > 20 * 800 * 600) {
         return response.status(400).json({
-          message: 'Imagem muito grande. O tamanho máximo permitido é 5MB.'
+          message: 'Image bigger than allowed. Max image size is 20MB.'
         })
       }
     }

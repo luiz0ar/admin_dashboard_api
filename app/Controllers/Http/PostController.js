@@ -6,115 +6,114 @@ const Database = use('Database')
 const Helpers = use('Helpers')
 const sharp = require('sharp')
 const uuid = require('uuid').v4
+const LogError = use('App/Models/LogError')
 
 class PostController {
-  async index({ request, response }) {
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 10)
-    const posts = await Post.query()
-      .orderBy('published_at', 'desc')
-      .paginate(page, limit)
-    return response.json(posts)
+  async index({ response }) {
+    try {
+      const posts = await Post.all()
+      return response.json(posts)
+    } catch (error) {
+      return this.logAndRespond(error, response, 'index', 'Failed to list posts.')
+    }
   }
 
-  async store({ request, response, auth }) {
+  async store({ request, response }) {
     const trx = await Database.beginTransaction()
     try {
-      const user = await auth.getUser()
-      const coverFile = request.file('cover_image', {
-        types: ['image'],
-        size: '5mb'
-      })
-
+      const data = request.only(['category_name', 'title', 'description', 'published_at', 'author'])
       let imagePath = null
 
-      if (coverFile) {
-        const fileName = `${uuid()}.jpg`
-        const outputPath = Helpers.publicPath(`uploads/${fileName}`)
+      const coverFile = request.file('cover_image', { types: ['image'], size: '20mb' })
 
+      if (coverFile) {
         try {
+          const fileName = `${uuid()}.jpg`
+          const outputPath = Helpers.publicPath(`uploads/${fileName}`)
+
           await sharp(coverFile.tmpPath)
             .resize(800, 600, { fit: 'cover' })
             .jpeg({ quality: 90 })
             .toFile(outputPath)
 
           imagePath = `/uploads/${fileName}`
-        } catch (err) {
+        } catch (imgError) {
           await trx.rollback()
-          console.error('Erro ao redimensionar a imagem:', err)
-          return response.status(500).json({ message: 'Falha ao processar a imagem.' })
+          console.error('Image processing error:', imgError)
+          return response.status(500).json({ message: 'Failed to process image.' })
         }
       }
 
-      const { category_name, title, description, published_at } = request.all()
-
-      if (!category_name) {
+      if (!data.category_name) {
         await trx.rollback()
-        return response.status(400).send({ message: 'Category name is required.' })
+        return response.status(400).json({ message: 'Category name is required.' })
       }
 
       const category = await Category.findOrCreate(
-        { name: category_name },
-        { name: category_name, created_by: user.id, updated_by: user.id },
+        { name: data.category_name },
+        { name: data.category_name, created_by: 1, updated_by: 1 },
         trx
       )
 
-      const postData = {
+      const post = await Post.create({
         category: category.name,
-        title,
-        description,
-        published_at,
+        title: data.title,
+        description: data.description,
+        published_at: data.published_at,
         cover_image: imagePath,
-        author: user.username || user.email || user.id,
-      }
+        author: data.author
+      }, trx)
 
-      const post = await Post.create(postData, trx)
       await trx.commit()
-      return response.status(201).json(post)
+      return response.json(post)
     } catch (error) {
       await trx.rollback()
-      console.error('Error creating post:', error)
-      return response.status(500).json({ message: 'Error creating post.', error: error.message })
+      return this.logAndRespond(error, response, 'store', 'Error creating post.')
     }
   }
 
   async show({ params, response }) {
     try {
       const post = await Post.findOrFail(params.id)
-      return post
+      return response.json(post)
     } catch (error) {
-      return response.status(404).json({ message: "Post not found." })
+      const status = (error.name === 'ModelNotFoundException' || error.code === 'E_MISSING_DATABASE_ROW') ? 404 : 500
+      const message = (status === 404) ? 'Post not found.' : 'Error fetching post.'
+      return this.logAndRespond(error, response, 'show', message, status)
     }
   }
 
-  async update({ params, request, response, auth }) {
+  async update({ params, request, response }) {
     try {
       const post = await Post.findOrFail(params.id)
-      const data = request.only(['category', 'title', 'description', 'published_at'])
-
-      const coverFile = request.file('cover_image', {
-        types: ['image'],
-        size: '5mb'
-      })
+      const data = request.only(['category', 'title', 'description', 'published_at', 'author'])
+      const coverFile = request.file('cover_image', { types: ['image'], size: '20mb' })
 
       if (coverFile) {
-        const fileName = `${uuid()}.jpg`
-        const outputPath = Helpers.publicPath(`uploads/${fileName}`)
+        try {
+          const fileName = `${uuid()}.jpg`
+          const outputPath = Helpers.publicPath(`uploads/${fileName}`)
 
-        await sharp(coverFile.tmpPath)
-          .resize(800, 600, { fit: 'cover' })
-          .jpeg({ quality: 90 })
-          .toFile(outputPath)
+          await sharp(coverFile.tmpPath)
+            .resize(800, 600, { fit: 'cover' })
+            .jpeg({ quality: 90 })
+            .toFile(outputPath)
 
-        data.cover_image = `/uploads/${fileName}`
+          data.cover_image = `/uploads/${fileName}`
+        } catch (imgError) {
+          console.error('Image processing error:', imgError)
+          return response.status(500).json({ message: 'Failed to process image.' })
+        }
       }
 
       post.merge(data)
       await post.save()
-      return response.status(200).json(post)
+
+      return response.json(post)
     } catch (error) {
-      console.error('Error updating post:', error)
-      return response.status(400).json({ message: 'Error updating post.', error: error.message })
+      const status = (error.name === 'ModelNotFoundException' || error.code === 'E_MISSING_DATABASE_ROW') ? 404 : 400
+      const message = (status === 404) ? 'Post not found.' : 'Error updating post.'
+      return this.logAndRespond(error, response, 'update', message, status)
     }
   }
 
@@ -122,10 +121,26 @@ class PostController {
     try {
       const post = await Post.findOrFail(params.id)
       await post.delete()
-      return response.status(200).json({ message: 'Post deleted successfully.' })
+      return response.json({ message: 'Post deleted successfully.' })
     } catch (error) {
-      return response.status(404).json({ message: "Post not found." })
+      const status = (error.name === 'ModelNotFoundException' || error.code === 'E_MISSING_DATABASE_ROW') ? 404 : 500
+      const message = (status === 404) ? 'Post not found.' : 'Error deleting post.'
+      return this.logAndRespond(error, response, 'destroy', message, status)
     }
+  }
+
+  /**
+   * Private helper for logging errors and sending JSON response
+   */
+  async logAndRespond(error, response, func, message, status = 500) {
+    await LogError.create({
+      jsonError: JSON.stringify(error),
+      controller: 'PostController',
+      function: func,
+      message: error.message
+    })
+    console.error(`Error in ${func}:`, error.message)
+    return response.status(status).json({ message })
   }
 }
 

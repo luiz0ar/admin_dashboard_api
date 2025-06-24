@@ -9,7 +9,7 @@ class PartnerController {
   async store({ request, response }) {
     const data = request.only(['cover_image', 'name', 'expires_at'])
     const partner = await Partner.create(data)
-    return response.status(201).json(partner)
+    return response.status(200).json(partner)
   }
 
   async show({ params, response }) {

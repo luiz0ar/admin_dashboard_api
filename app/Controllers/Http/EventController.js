@@ -9,7 +9,7 @@ class EventController {
   async store({ request, response }) {
     const data = request.only(['cover_image', 'title', 'description', 'start', 'end'])
     const event = await Event.create(data)
-    return response.status(201).json(event)
+    return response.status(200).json(event)
   }
 
   async show({ params, response }) {

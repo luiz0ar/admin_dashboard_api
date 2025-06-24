@@ -20,13 +20,21 @@ const Route = use('Route')
 Route.post('/login', 'UserController.login')
 Route.post('/logout', 'UserController.logout')
 
-Route.get('/auth/me', 'UserController.auth').middleware(['auth'])
-Route.resource('users', 'UserController').apiOnly().middleware(['auth'])
-Route.resource('posts', 'PostController').apiOnly().middleware(['auth'])
-Route.resource('categories', 'CategoryController').apiOnly().middleware(['auth'])
-Route.resource('unities', 'UnityController').apiOnly().middleware(['auth'])
-Route.resource('magazines', 'MaganizeController').apiOnly().middleware(['auth'])
-Route.resource('partners', 'PartnerController').apiOnly().middleware(['auth'])
+Route.post('permissionRole', 'RoleController.permissionRole')
+Route.post('deletepermissionRole', 'RoleController.deletepermissionRole')
+Route.post('roleToUser', 'RoleController.roleToUser')
+Route.post('deleteRoleToUser', 'RoleController.deleteRoleFromUser')
+
+Route.get('/auth/me', 'UserController.auth')
+Route.resource('menu-structure', 'MenuStructureController').apiOnly()
+Route.resource('users', 'UserController').apiOnly()
+Route.resource('posts', 'PostController').apiOnly()
+Route.resource('categories', 'CategoryController').apiOnly()
+Route.resource('unities', 'UnityController').apiOnly()
+Route.resource('magazines', 'MaganizeController').apiOnly()
+Route.resource('partners', 'PartnerController').apiOnly()
+Route.resource('permissions', 'PermissionController').apiOnly()
+Route.resource('roles', 'RoleController').apiOnly()
 
 // -------------------------------------------------------------------------------------
 
