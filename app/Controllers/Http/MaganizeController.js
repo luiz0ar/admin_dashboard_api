@@ -21,8 +21,13 @@ class MagazineController {
       const { title, edition, slug } = request.only(['title', 'edition', 'slug'])
       const timestamp = Date.now()
       const baseUrl = process.env.APP_URL || `${request.protocol()}://${request.hostname()}:${process.env.PORT || 3333}`
+      if (!/^\d+$/.test(edition)) {
+        return response.status(400).json({ message: 'Edition must contain only numbers.' })
+      }
       const pdf = request.file('pdf', { types: ['application'], extnames: ['pdf'] })
-      if (!pdf) return response.status(400).json({ message: 'PDF file is required.' })
+      if (!pdf) {
+        return response.status(400).json({ message: 'PDF file is required.' })
+      }
       const pdfName = `${timestamp}_${pdf.clientName}`
       await pdf.move(Helpers.publicPath('uploads/magazinesPdf'), { name: pdfName, overwrite: true })
       if (!pdf.moved()) throw pdf.error()
@@ -50,10 +55,12 @@ class MagazineController {
         cover: magazine.cover,
         created_at: magazine.created_at
       })
+
     } catch (error) {
       return this.logAndRespond(error, response, 'store', 'Error creating magazine.')
     }
   }
+
 
   async show({ params, response }) {
     try {
@@ -72,6 +79,9 @@ class MagazineController {
       const baseUrl = process.env.APP_URL || `${request.protocol()}://${request.hostname()}:${process.env.PORT || 3333}`
       const timestamp = Date.now()
       const fieldsToUpdate = request.only(['title', 'edition', 'slug'])
+      if (fieldsToUpdate.edition && !/^\d+$/.test(fieldsToUpdate.edition)) {
+        return response.status(400).json({ message: 'Edition must contain only numbers.' })
+      }
       magazine.merge(fieldsToUpdate)
       const pdf = request.file('pdf', { types: ['application'], extnames: ['pdf'] })
       if (pdf) {
