@@ -76,7 +76,7 @@ class UnityController {
       const bannerFile = request.file('banner', { types: ['image'], size: '20mb' })
       if (bannerFile) {
         try {
-          if (unity.banner) await this.deleteImageIfExists(unity.banner)
+          if (unity.banner) await this.deleteFileIfExists(unity.banner)
           const fileName = `${uuid()}.jpg`
           const outputPath = Helpers.publicPath(`uploads/unities/${fileName}`)
           await sharp(bannerFile.tmpPath)
@@ -107,7 +107,7 @@ class UnityController {
   async destroy({ params, response }) {
     try {
       const unity = await Unity.findOrFail(params.id)
-      if (unity.banner) await this.deleteImageIfExists(unity.banner)
+      if (unity.banner) await this.deleteFileIfExists(unity.banner)
       await unity.delete()
       return response.status(204).send()
     } catch (error) {
@@ -117,7 +117,7 @@ class UnityController {
     }
   }
 
-  async deleteImageIfExists(relativePath) {
+  async deleteFileIfExists(relativePath) {
     try {
       const imagePath = path.join(Helpers.publicPath(), relativePath.replace(/^\/+/, ''))
       await fs.access(imagePath)
@@ -126,7 +126,6 @@ class UnityController {
       console.warn(`Failed to delete image: ${relativePath}`, err.message)
     }
   }
-
   parseArray(input) {
     if (Array.isArray(input)) return input
     try {

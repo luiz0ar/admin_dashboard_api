@@ -114,7 +114,7 @@ async show({ params, response }) {
     try {
       const partners = await Partner.findOrFail(params.id)
       if (partners.cover_image) {
-        await this.deleteImageIfExists(partners.cover_image)
+        await this.deleteFileIfExists(partners.cover_image)
       }
       await partners.delete()
       return response.json({ message: 'Partner deleted succesfully.' })

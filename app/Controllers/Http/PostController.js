@@ -99,7 +99,7 @@ async show({ params, response }) {
       if (coverFile) {
         try {
           if (post.cover_image) {
-            await this.deleteImageIfExists(post.cover_image)
+            await this.deleteFileIfExists(post.cover_image)
           }
           const fileName = `${uuid()}.jpg`
           const outputPath = Helpers.publicPath(`uploads/${fileName}`)
@@ -127,7 +127,7 @@ async show({ params, response }) {
     try {
       const post = await Post.findOrFail(params.id)
       if (post.cover_image) {
-        await this.deleteImageIfExists(post.cover_image)
+        await this.deleteFileIfExists(post.cover_image)
       }
       await post.delete()
       return response.json({ message: 'Post deleted succesfully.' })
@@ -138,7 +138,7 @@ async show({ params, response }) {
     }
   }
 
-  async deleteImageIfExists(relativePath) {
+  async deleteFileIfExists(relativePath) {
     try {
       const imagePath = path.join(Helpers.publicPath(), relativePath.replace(/^\/+/, ''))
       await fs.access(imagePath)
