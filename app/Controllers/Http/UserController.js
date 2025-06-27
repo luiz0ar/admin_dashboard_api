@@ -8,6 +8,20 @@ const LogError = use('App/Models/LogError')
 const Database = use('Database')
 
 class UserController {
+  async auth({ auth, response }) {
+    try {
+      const user = await auth.getUser()
+      return response.json({
+        id: user.id,
+        username: user.username,
+        email: user.email
+      })
+    } catch (error) {
+      console.error('[auth/me]', error)
+      return response.status(500).json({ message: 'Erro ao buscar usuário autenticado' })
+    }
+  }
+
   async index({ response }) {
     try {
       const users = await User.all()

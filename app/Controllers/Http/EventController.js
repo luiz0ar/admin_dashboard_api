@@ -5,12 +5,20 @@ const Helpers = use('Helpers')
 const LogError = use('App/Models/LogError')
 const fs = require('fs').promises
 const path = require('path')
+const DateFormatter = use('App/Services/Date/DateFormatter.js')
 
 class EventController {
   async index({ response }) {
     try {
       const events = await Event.all()
-      return response.json(events)
+      const formattedEvents = events.toJSON().map(event => ({
+        ...event,
+        start: DateFormatter.toBrazilianDateTime(event.start),
+        end: DateFormatter.toBrazilianDateTime(event.end),
+        created_at: DateFormatter.toBrazilianDateTime(event.created_at),
+        updated_at: DateFormatter.toBrazilianDateTime(event.updated_at)
+      }))
+      return response.json(formattedEvents)
     } catch (error) {
       return this.logAndRespond(error, response, 'index', 'Failed to list events.')
     }
@@ -35,16 +43,24 @@ class EventController {
     }
   }
 
-  async show({ params, response }) {
-    try {
-      const event = await Event.findOrFail(params.id)
-      return response.json(event)
-    } catch (error) {
-      const status = (error.name === 'ModelNotFoundException') ? 404 : 500
-      const message = (status === 404) ? 'Event not found.' : 'Error fetching event.'
-      return this.logAndRespond(error, response, 'show', message, status)
+async show({ params, response }) {
+  try {
+    const event = await Event.findOrFail(params.id)
+    const rawEvent = event.toJSON()
+    const formattedEvent = {
+      ...rawEvent,
+      start: DateFormatter.toBrazilianDateTime(rawEvent.start),
+      end: DateFormatter.toBrazilianDateTime(rawEvent.end),
+      created_at: DateFormatter.toBrazilianDateTime(rawEvent.created_at),
+      updated_at: DateFormatter.toBrazilianDateTime(rawEvent.updated_at)
     }
+    return response.json(formattedEvent)
+  } catch (error) {
+    const status = (error.name === 'ModelNotFoundException') ? 404 : 500
+    const message = (status === 404) ? 'Event not found.' : 'Error fetching event.'
+    return this.logAndRespond(error, response, 'show', message, status)
   }
+}
 
   async update({ params, request, response }) {
     try {

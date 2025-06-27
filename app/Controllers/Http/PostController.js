@@ -9,12 +9,19 @@ const uuid = require('uuid').v4
 const fs = require('fs').promises
 const path = require('path')
 const LogError = use('App/Models/LogError')
+const DateFormatter = use('App/Services/Date/DateFormatter.js')
 
 class PostController {
   async index({ response }) {
     try {
       const posts = await Post.all()
-      return response.json(posts)
+       const formattedPosts = posts.toJSON().map(post => ({
+        ...post,
+        created_at: DateFormatter.toBrazilianDateTime(post.created_at),
+        published_at: DateFormatter.toBrazilianDateTime(post.published_at),
+        updated_at: DateFormatter.toBrazilianDateTime(post.updated_at)
+      }))
+      return response.json(formattedPosts)
     } catch (error) {
       return this.logAndRespond(error, response, 'index', 'Failed to list posts.')
     }
@@ -66,16 +73,23 @@ class PostController {
     }
   }
 
-  async show({ params, response }) {
-    try {
-      const post = await Post.findOrFail(params.id)
-      return response.json(post)
-    } catch (error) {
-      const status = (error.name === 'ModelNotFoundException' || error.code === 'E_MISSING_DATABASE_ROW') ? 404 : 500
-      const message = (status === 404) ? 'Post not found.' : 'Error fetching post.'
-      return this.logAndRespond(error, response, 'show', message, status)
+async show({ params, response }) {
+  try {
+    const post = await Post.findOrFail(params.id)
+    const rawPost = post.toJSON()
+    const formattedPost = {
+      ...rawPost,
+      created_at: DateFormatter.toBrazilianDateTime(rawPost.created_at),
+      published_at: DateFormatter.toBrazilianDateTime(rawPost.published_at),
+      updated_at: DateFormatter.toBrazilianDateTime(rawPost.updated_at)
     }
+    return response.json(formattedPost)
+  } catch (error) {
+    const status = (error.name === 'ModelNotFoundException' || error.code === 'E_MISSING_DATABASE_ROW') ? 404 : 500
+    const message = (status === 404) ? 'Post not found.' : 'Error fetching post.'
+    return this.logAndRespond(error, response, 'show', message, status)
   }
+}
 
   async update({ params, request, response }) {
     try {

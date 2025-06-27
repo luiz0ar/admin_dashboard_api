@@ -7,43 +7,29 @@ const Database = use('Database')
 class CategoryController {
   async index({ response }) {
     try {
-      const Categorys = await Category.query()
-        .select('id', 'name', 'created_by')
-        .fetch()
-
-      return response.json(Categorys)
+      const categories = await Category.query().select('id', 'name', 'created_by').orderBy('created_at', 'desc').fetch()
+      return response.json(categories)
     } catch (error) {
-      console.error('Erro ao listar categorias:', error.message)
-      await LogError.create({
-        jsonError: JSON.stringify(error),
-        controller: 'CategoryController',
-        function: 'index',
-        message: error.message
-      })
-      return response.status(500).json({ message: 'Internal error.' })
+      return this.logAndRespond(error, response, 'index', 'Failed to list categories.')
     }
   }
 
   async store({ request, response }) {
+    const trx = await Database.beginTransaction()
     try {
-      const data = request.only(['name', 'created_by'])
+      const { name, created_by } = request.only(['name', 'created_by'])
 
       const category = await Category.create({
-        name: data.name,
-        created_by: data.created_by,
+        name,
+        created_by,
         updated_by: null
-      })
+      }, trx)
 
+      await trx.commit()
       return response.status(200).json(category)
     } catch (error) {
-      console.error('Erro ao criar categoria:', error.message)
-      await LogError.create({
-        jsonError: JSON.stringify(error),
-        controller: 'CategoryController',
-        function: 'store',
-        message: error.message
-      })
-      return response.status(500).json({ message: 'Internal error.' })
+      await trx.rollback()
+      return this.logAndRespond(error, response, 'store', 'Error creating category.')
     }
   }
 
@@ -60,63 +46,61 @@ class CategoryController {
 
       return response.json(category)
     } catch (error) {
-      console.error('Erro ao buscar categoria:', error.message)
-      await LogError.create({
-        jsonError: JSON.stringify(error),
-        controller: 'CategoryController',
-        function: 'show',
-        message: error.message
-      })
-      return response.status(500).json({ message: 'Internal error.' })
+      return this.logAndRespond(error, response, 'show', 'Error fetching category.')
     }
   }
 
   async update({ params, request, response }) {
+    const trx = await Database.beginTransaction()
     try {
-      const data = request.only(['name', 'updated_by'])
-
+      const { name, created_by } = request.only(['name', 'created_by'])
       const category = await Category.find(params.id)
       if (!category) {
         return response.status(404).json({ message: 'Category not found.' })
       }
-
-      category.name = data.name
-      category.updated_by = data.updated_by
-
-      await category.save()
-
+      const updates = {}
+      if (typeof name !== 'undefined') updates.name = name
+      if (typeof created_by !== 'undefined') updates.created_by = created_by
+      if (Object.keys(updates).length === 0) {
+        return response.status(400).json({ message: 'No valid fields to update.' })
+      }
+      category.merge(updates)
+      await category.save(trx)
+      await trx.commit()
       return response.json(category)
     } catch (error) {
-      console.error('Error updating category:', error.message)
-      await LogError.create({
-        jsonError: JSON.stringify(error),
-        controller: 'CategoryController',
-        function: 'update',
-        message: error.message
-      })
-      return response.status(500).json({ message: 'Internal error.' })
+      await trx.rollback()
+      return this.logAndRespond(error, response, 'update', 'Error updating category.')
     }
   }
 
   async destroy({ params, response }) {
     try {
       const category = await Category.find(params.id)
+
       if (!category) {
         return response.status(404).json({ message: 'Category not found.' })
       }
 
       await category.delete()
-      return response.json({ message: 'Category deleted succesfully.' })
+      return response.json({ message: 'Category deleted successfully.' })
     } catch (error) {
-      console.error('Error deleting category:', error.message)
-      await LogError.create({
-        jsonError: JSON.stringify(error),
-        controller: 'CategoryController',
-        function: 'destroy',
-        message: error.message
-      })
-      return response.status(500).json({ message: 'Internal error.' })
+      return this.logAndRespond(error, response, 'destroy', 'Error deleting category.')
     }
+  }
+
+  /**
+   * Private: Centralized error logger and response
+   */
+  async logAndRespond(error, response, func, message, status = 500) {
+    await LogError.create({
+      jsonError: JSON.stringify(error),
+      controller: 'CategoryController',
+      function: func,
+      message: error.message
+    })
+    console.error(`Error in ${func}:`, error.message)
+    return response.status(status).json({ message })
   }
 }
 

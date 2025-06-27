@@ -25,14 +25,14 @@ Route.post('deletepermissionRole', 'RoleController.deletepermissionRole')
 Route.post('roleToUser', 'RoleController.roleToUser')
 Route.post('deleteRoleToUser', 'RoleController.deleteRoleFromUser')
 
-Route.get('/auth/me', 'UserController.auth')
+Route.get('/auth/me', 'UserController.auth').middleware(['auth'])
 Route.resource('menu-structure', 'MenuStructureController').apiOnly()
 Route.resource('users', 'UserController').apiOnly()
 Route.resource('events', 'EventController').apiOnly()
 Route.resource('alerts', 'AlertController').apiOnly()
 Route.resource('banners', 'BannerController').apiOnly()
-Route.resource('posts', 'PostController').apiOnly()
-Route.resource('categories', 'CategoryController').apiOnly()
+Route.resource('posts', 'PostController').apiOnly().middleware(['auth'])
+Route.resource('categories', 'CategoryController').apiOnly().middleware(['auth'])
 Route.resource('unities', 'UnityController').apiOnly()
 Route.resource('magazines', 'MaganizeController').apiOnly()
 Route.resource('partners', 'PartnerController').apiOnly()
@@ -40,6 +40,8 @@ Route.resource('permissions', 'PermissionController').apiOnly()
 Route.resource('roles', 'RoleController').apiOnly()
 
 // -------------------------------------------------------------------------------------
+
+Route.post('upload-image', 'UploadController.upload')
 
 Route.get('/uploads/:folder/:file', async ({ params, response }) => {
   const { folder, file } = params

@@ -6,35 +6,40 @@ const moment = require('moment')
 const Helpers = use('Helpers')
 const fs = require('fs').promises
 const path = require('path')
+const DateFormatter = use('App/Services/Date/DateFormatter.js')
 
 class PartnerController {
-  async index({ response }) {
-    try {
-      const partners = await Partner.all()
-      const formattedPartners = partners.toJSON().map(partner => ({
-        ...partner,
-        expires_at: partner.expires_at ? moment(partner.expires_at).format('YYYY-MM-DD') : null
-      }))
-      return response.json(formattedPartners)
-    } catch (error) {
-      return this.logAndRespond(error, response, 'index', 'Failed to list partners.')
-    }
+async index({ response }) {
+  try {
+    const partners = await Partner.all()
+    const formattedPartners = partners.toJSON().map(partner => ({
+      ...partner,
+      expires_at: DateFormatter.toBrazilianDateTime(partner.expires_at),
+      created_at: DateFormatter.toBrazilianDateTime(partner.created_at),
+      updated_at: DateFormatter.toBrazilianDateTime(partner.updated_at),
+    }))
+    return response.json(formattedPartners)
+  } catch (error) {
+    return this.logAndRespond(error, response, 'index', 'Failed to list partners.')
   }
+}
 
-  async show({ params, response }) {
-    try {
-      const partner = await Partner.findOrFail(params.id)
-      const formattedPartner = {
-        ...partner.toJSON(),
-        expires_at: partner.expires_at ? moment(partner.expires_at).format('YYYY-MM-DD') : null
-      }
-      return response.json(formattedPartner)
-    } catch (error) {
-      const status = (error.name === 'ModelNotFoundException') ? 404 : 500
-      const message = (status === 404) ? 'Partner not found.' : 'Error fetching partner.'
-      return this.logAndRespond(error, response, 'show', message, status)
+async show({ params, response }) {
+  try {
+    const partner = await Partner.findOrFail(params.id)
+    const formattedPartner = {
+      ...partner.toJSON(),
+      expires_at: DateFormatter.toBrazilianDateTime(partner.expires_at),
+      created_at: DateFormatter.toBrazilianDateTime(partner.created_at),
+      updated_at: DateFormatter.toBrazilianDateTime(partner.updated_at),
     }
+    return response.json(formattedPartner)
+  } catch (error) {
+    const status = (error.name === 'ModelNotFoundException') ? 404 : 500
+    const message = (status === 404) ? 'Partner not found.' : 'Error fetching partner.'
+    return this.logAndRespond(error, response, 'show', message, status)
   }
+}
 
   async store({ request, response }) {
     try {

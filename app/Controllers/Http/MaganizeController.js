@@ -55,7 +55,6 @@ class MagazineController {
         cover: magazine.cover,
         created_at: magazine.created_at
       })
-
     } catch (error) {
       return this.logAndRespond(error, response, 'store', 'Error creating magazine.')
     }
