@@ -29,6 +29,7 @@
     "@adonisjs/validator": "^5.1.0",
     "@rocketseat/adonis-acl": "^1.2.2",
     "adonis-acl": "^1.1.1",
+    "ioredis": "^4.30.0",
     "mysql": "^2.18.1",
     "sharp": "^0.34.2"
   },
